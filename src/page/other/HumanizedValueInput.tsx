@@ -171,7 +171,6 @@ function parseDurationInput(input: string): number | null {
   let match: RegExpExecArray | null
   let matched = false
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(trimmed)) !== null) {
     const value = parseFloat(match[1] ?? '')
     const unitStr = match[2] ?? ''
