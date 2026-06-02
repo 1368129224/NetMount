@@ -188,7 +188,7 @@ describe('MountRepository', () => {
       const result = await repository.addMountConfig(
         'test-storage',
         '/mnt/test',
-        {} as any,
+        { vfsOpt: {} as any, mountOpt: {} as any },
         false
       )
 
@@ -201,13 +201,13 @@ describe('MountRepository', () => {
       const { nmConfig } = await import('../../services/ConfigService')
       
       nmConfig.mount.lists = [
-        { storageName: 'test-storage', mountPath: '/mnt/test', parameters: {} as any, autoMount: false },
+        { storageName: 'test-storage', mountPath: '/mnt/test', parameters: { vfsOpt: {} as any, mountOpt: {} as any }, autoMount: false },
       ]
 
       const result = await repository.addMountConfig(
         'test-storage',
         '/mnt/test',
-        {} as any,
+        { vfsOpt: {} as any, mountOpt: {} as any },
         false
       )
 

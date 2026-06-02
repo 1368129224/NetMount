@@ -17,7 +17,7 @@ const FormItem = Form.Item
 function isValidHostname(hostname: string): boolean {
   if (!hostname) return false
   // 允许: IP地址、域名、localhost
-  const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$/
+  const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-.]*[a-zA-Z0-9])?$/
   return hostnameRegex.test(hostname)
 }
 

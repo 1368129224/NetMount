@@ -69,7 +69,7 @@ export function HumanizedValueInput({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      ;(e.target as HTMLInputElement).blur()
+      (e.target as HTMLInputElement).blur()
     }
   }
 
