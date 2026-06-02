@@ -129,8 +129,10 @@ fn app_data_dir(app: &tauri::AppHandle<Runtime>) -> anyhow::Result<PathBuf> {
 
 #[tauri::command]
 pub fn fs_exist_dir(app: tauri::AppHandle<Runtime>, path: &str) -> anyhow_tauri::TAResult<bool> {
-    let path = resolve_path(&app, path)?;
-    let exists = std::fs::metadata(path)
+    let resolved_path = resolve_path(&app, path)?;
+    // 安全：验证路径在允许目录内
+    let validated_path = validate_path_in_allowed_dir(&app, &resolved_path)?;
+    let exists = std::fs::metadata(validated_path)
         .map_err(anyhow::Error::from)?
         .is_dir();
     Ok(exists)
@@ -138,8 +140,10 @@ pub fn fs_exist_dir(app: tauri::AppHandle<Runtime>, path: &str) -> anyhow_tauri:
 
 #[tauri::command]
 pub fn fs_make_dir(app: tauri::AppHandle<Runtime>, path: &str) -> anyhow_tauri::TAResult<()> {
-    let path = resolve_path(&app, path)?;
-    std::fs::create_dir_all(path).map_err(anyhow::Error::from)?;
+    let resolved_path = resolve_path(&app, path)?;
+    // 安全：验证路径在允许目录内
+    let validated_path = validate_path_in_allowed_dir(&app, &resolved_path)?;
+    std::fs::create_dir_all(validated_path).map_err(anyhow::Error::from)?;
     Ok(())
 }
 
@@ -344,6 +348,10 @@ pub fn export_config(
         }
 
         let out = resolve_tilde(app, out_path)?;
+        
+        // 安全：验证输出路径在允许目录内
+        validate_path_in_allowed_dir(app, &out)?;
+        
         if let Some(parent) = out.parent() {
             if !parent.as_os_str().is_empty() {
                 fs::create_dir_all(parent).map_err(anyhow::Error::from)?;
@@ -465,23 +473,27 @@ pub fn import_config(
             let target_path = temp_dir.join(&entry_name);
             
             // 安全：验证目标路径在临时目录内（防止 Zip Slip）
-            let temp_dir_canonical = temp_dir.canonicalize().unwrap_or_else(|_| temp_dir.clone());
-            // 对于新创建的文件，需要检查父目录
-            if let Some(parent) = target_path.parent() {
-                if parent.exists() {
-                    let parent_canonical = parent.canonicalize().unwrap_or_else(|_| parent.to_path_buf());
-                    if !parent_canonical.starts_with(&temp_dir_canonical) {
-                        return Err(anyhow::anyhow!(
-                            "安全警告：ZIP 条目路径 '{}' 试图逃逸目标目录",
-                            entry_name
-                        ));
-                    }
-                }
+            // 首先检查路径字符串是否包含可疑字符
+            if entry_name.contains("..") || entry_name.contains('\\') || entry_name.starts_with('/') {
+                return Err(anyhow::anyhow!(
+                    "安全警告：ZIP 文件包含可疑路径 '{}'",
+                    entry_name
+                ));
             }
             
             // 确保父目录存在
             if let Some(parent) = target_path.parent() {
                 fs::create_dir_all(parent)?;
+            }
+            
+            // 验证目标路径在临时目录内
+            let temp_dir_canonical = temp_dir.canonicalize().unwrap_or_else(|_| temp_dir.clone());
+            let target_canonical = target_path.canonicalize().unwrap_or_else(|_| target_path.clone());
+            if !target_canonical.starts_with(&temp_dir_canonical) {
+                return Err(anyhow::anyhow!(
+                    "安全警告：ZIP 条目路径 '{}' 试图逃逸目标目录",
+                    entry_name
+                ));
             }
             
             // 如果是目录，创建它

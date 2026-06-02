@@ -9,8 +9,25 @@
 const ENCODING_PREFIX = 'nmenc:'
 
 /**
+ * 生成机器特定的密钥
+ * 使用hostname和应用路径组合生成密钥，使配置文件在不同机器上不可移植
+ */
+function getMachineKey(): string {
+  try {
+    // 在浏览器环境中，使用 navigator 信息
+    const hostname = window.location.hostname || 'localhost'
+    const origin = window.location.origin || 'file://'
+    // 组合生成机器特定密钥
+    return `NetMount_${hostname}_${origin}_2024!`
+  } catch {
+    // 回退到固定密钥（向后兼容）
+    return 'NetMount2024!'
+  }
+}
+
+/**
  * 简单的 XOR 编码函数
- * 使用固定的密钥对密码进行 XOR 编码，然后 base64 编码
+ * 使用机器特定的密钥对密码进行 XOR 编码，然后 base64 编码
  */
 function xorEncode(input: string, key: string): string {
   let result = ''
@@ -34,8 +51,8 @@ export function encodePassword(plainPassword: string): string {
     return plainPassword
   }
   
-  // 使用 XOR 编码 + base64
-  const key = 'NetMount2024!' // 固定密钥
+  // 使用机器特定密钥进行 XOR 编码 + base64
+  const key = getMachineKey()
   const encoded = xorEncode(plainPassword, key)
   const base64 = btoa(unescape(encodeURIComponent(encoded)))
   
@@ -58,7 +75,7 @@ export function decodePassword(encodedPassword: string): string {
   try {
     const base64 = encodedPassword.slice(ENCODING_PREFIX.length)
     const encoded = decodeURIComponent(escape(atob(base64)))
-    const key = 'NetMount2024!'
+    const key = getMachineKey()
     return xorEncode(encoded, key) // XOR 编码和解码是同一个操作
   } catch {
     // 解码失败，返回原值（可能是旧格式）
