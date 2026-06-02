@@ -202,7 +202,8 @@ fn validate_path_in_allowed_dir(app: &tauri::AppHandle<Runtime>, path: &Path) ->
 #[tauri::command]
 pub fn read_json_file(app: tauri::AppHandle<Runtime>, path: Option<&str>) -> Result<Value, String> {
     let path_str = path.ok_or_else(|| "Path is required".to_string())?;
-    let resolved_path = resolve_path(&app, path_str);
+    let resolved_path = resolve_path(&app, path_str)
+        .map_err(|e| e.to_string())?;
     
     // 安全：验证路径在允许目录内
     let validated_path = validate_path_in_allowed_dir(&app, &resolved_path)
@@ -221,7 +222,8 @@ pub fn read_json_file(app: tauri::AppHandle<Runtime>, path: Option<&str>) -> Res
 #[tauri::command]
 pub async fn write_json_file(app: tauri::AppHandle<Runtime>, config_data: Value, path: Option<&str>) -> Result<(), String> {
     let path_str = path.ok_or_else(|| "Path is required".to_string())?;
-    let resolved_path = resolve_path(&app, path_str);
+    let resolved_path = resolve_path(&app, path_str)
+        .map_err(|e| e.to_string())?;
     
     // 安全：验证路径在允许目录内
     let validated_path = validate_path_in_allowed_dir(&app, &resolved_path)
@@ -238,8 +240,10 @@ pub async fn write_json_file(app: tauri::AppHandle<Runtime>, config_data: Value,
 
 #[tauri::command]
 pub fn copy_file(app: tauri::AppHandle<Runtime>, src: &str, dest: &str) -> Result<(), String> {
-    let src_path = resolve_path(&app, src);
-    let dest_path = resolve_path(&app, dest);
+    let src_path = resolve_path(&app, src)
+        .map_err(|e| e.to_string())?;
+    let dest_path = resolve_path(&app, dest)
+        .map_err(|e| e.to_string())?;
     
     // 安全：验证源路径和目标路径都在允许目录内
     let validated_src = validate_path_in_allowed_dir(&app, &src_path)

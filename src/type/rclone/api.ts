@@ -93,8 +93,8 @@ function isMountListResponse(data: unknown): data is MountListResponse {
     data !== null &&
     'mountPoints' in data &&
     Array.isArray((data as Record<string, unknown>).mountPoints) &&
-    (data as Record<string, unknown>).mountPoints.every(
-      item =>
+    ((data as Record<string, unknown>).mountPoints as unknown[]).every(
+      (item: unknown) =>
         typeof item === 'object' &&
         item !== null &&
         'mountPoint' in item &&
@@ -108,12 +108,15 @@ function isMountListResponse(data: unknown): data is MountListResponse {
 }
 
 export {
-  AsyncJobResponse,
-  JobStatusResponse,
-  RcloneVersionResponse,
-  MountListResponse,
   isAsyncJobResponse,
   isJobStatusResponse,
   isRcloneVersionResponse,
   isMountListResponse,
+}
+
+export type {
+  AsyncJobResponse,
+  JobStatusResponse,
+  RcloneVersionResponse,
+  MountListResponse,
 }
