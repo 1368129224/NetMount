@@ -163,6 +163,29 @@ jobs:
           # 同步版本到 Cargo.toml
           node scripts/sync-version.mjs
 
+      # 检测是否有签名密钥（fork 通常没有此 secret，跳过 updater 签名即可）
+      - name: Check signing key availability
+        id: signing-check
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+            echo "Signing key found, updater artifacts will be generated."
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "No signing key configured, disabling updater artifacts."
+            node -e "
+              const fs = require('fs');
+              const path = 'src-tauri/tauri.conf.json';
+              const conf = JSON.parse(fs.readFileSync(path, 'utf8'));
+              conf.bundle.createUpdaterArtifacts = false;
+              fs.writeFileSync(path, JSON.stringify(conf, null, 2) + '\n');
+              console.log('Patched createUpdaterArtifacts to false');
+            "
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -179,6 +202,7 @@ jobs:
           prerelease: true
           tauriScript: pnpm tauri
           args: ${{ matrix.args }}
+          includeUpdaterJson: ${{ steps.signing-check.outputs.has_key == 'true' }}
 
       # Windows 便携式版本
       - name: Create Windows portable ZIP
