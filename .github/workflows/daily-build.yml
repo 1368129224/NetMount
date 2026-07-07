@@ -210,14 +210,20 @@ jobs:
         shell: pwsh
         env:
           DEV_VERSION: ${{ needs.prepare.outputs.dev_version }}
-          TARGET: ${{ matrix.target }}
+          BUILD_ARGS: ${{ matrix.args }}
           ARCH: ${{ matrix.arch }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $exeExt = ".exe"
           $exeName = "NetMount"
 
-          $releaseDir = "src-tauri/target/$env:TARGET/release"
+          # 未传 --target 时 Tauri 输出到 target/release/，不是 target/{triple}/release/
+          if ([string]::IsNullOrEmpty($env:BUILD_ARGS)) {
+            $releaseDir = "src-tauri/target/release"
+          } else {
+            $targetFromArgs = ($env:BUILD_ARGS -split ' ')[1]
+            $releaseDir = "src-tauri/target/$targetFromArgs/release"
+          }
 
           $portableDir = "portable-pack"
           if (Test-Path $portableDir) { Remove-Item -Recurse -Force $portableDir }
