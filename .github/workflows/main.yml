@@ -363,20 +363,18 @@ jobs:
         shell: pwsh
         env:
           PACKAGE_VERSION: ${{ needs.create-release.outputs.package_version }}
-          BUILD_ARGS: ${{ matrix.args }}
           ARCH: ${{ matrix.arch }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $exeExt = ".exe"
           $exeName = "NetMount"
           
-          # 未传 --target 时 Tauri 输出到 target/release/，不是 target/{triple}/release/
-          if ([string]::IsNullOrEmpty($env:BUILD_ARGS)) {
-            $releaseDir = "src-tauri/target/release"
-          } else {
-            $targetFromArgs = ($env:BUILD_ARGS -split ' ')[1]
-            $releaseDir = "src-tauri/target/$targetFromArgs/release"
+          # Tauri 原生编译输出到 target/release/，交叉编译输出到 target/{triple}/release/
+          $releaseDir = "src-tauri/target/release"
+          if (-not (Test-Path "$releaseDir/$exeName$exeExt")) {
+            $releaseDir = "src-tauri/target/${{ matrix.target }}/release"
           }
+          Write-Host "Release dir: $releaseDir"
           
           # 创建临时打包目录
           $portableDir = "portable-pack"
